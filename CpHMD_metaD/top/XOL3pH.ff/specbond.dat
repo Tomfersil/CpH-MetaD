@@ -1,0 +1,14 @@
+12
+OH5     O5'      1       ROS    C5'     1       0.1410   OH5     ROS
+POX     O5'      1       ROS    C5'     1       0.1410   POX     ROS
+POX     O3'      1       ROS    C3'     1       0.1410   POX     ROS  
+ROS     C1'      1       AR0     N9     1       0.1475   ROS     AR0
+ROS     C1'      1       AR1     N9     1       0.1475   ROS     AR1
+ROS     C1'      1       UR0     N1     1       0.1475   ROS     UR0
+ROS     C1'      1       UR1     N1     1       0.1475   ROS     UR1
+ROS     C1'      1       GR0     N9     1       0.1475   ROS     GR0
+ROS     C1'      1       GR1     N9     1       0.1475   ROS     GR1
+ROS     C1'      1       CR0     N1     1       0.1475   ROS     CR0
+ROS     C1'      1       CR1     N1     1       0.1475   ROS     CR1
+ROS     C3'      1       OH3    O3'     1       0.1410   ROS     OH3       
+

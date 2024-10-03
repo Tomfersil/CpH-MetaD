@@ -1,0 +1,44 @@
+##################################################################
+#
+# Rule file for fix_topology.
+#
+# Any line not starting with "bond", "angle" or "dihedral" is ignored,
+# but the best practice is to leave non-readable lines blank or start
+# them with a typical comment character, like #.
+#
+# The columns in the readable lines are:
+#   1 : type of term (bond, angle or dihedral)
+#   2 : function type used by Gromacs.
+#   3 to last-1 : residuename_atomname, which may include regular expressions
+#   last : Parameters, usually a Gromacs macro (eg, gb_15) or "delete"
+#
+# The columns must be separated by one or more spaces and/or tabs, as
+# the default field separator (FS) in AWK.
+#
+# Equivalent definitions for bonds, angles and torsions are done
+# automatically: eg, if the bond AA-BB is defined, the bond BB-AA
+# doesn't need to be defined.
+#
+##################################################################
+
+# Define macros:
+define   (:base:)  (AR0|AR1)
+define   (:sug:)   (ROS|RON)
+define   (:phos:)  (POX)
+## Check if the bond value is the same for other nucleotides in the FF (should be since its by atomtype)
+# Bonds:
+bond      1    (:base:)_N9      (:sug:)_C1'   0.14750
+bond      1    (:sug:)_C5'      (:phos:)_O5'  0.14100
+# This one should bond with the previous residue
+bond      1    (:sug:)_-O3'      (:phos:)_P    0.16100
+
+# Pair delete:
+# pair      1    PYR_CG    (:ss:)_CA1 delete
+#
+# Bond angles:
+#angle     2   (:tails:)_CD    (:phos:)_OD   (:phos:)_P   ga_26
+# Proper dihedrals (torsions):
+#dihedral  1   (:tails:)_CD    (:phos:)_OD   (:phos:)_P   (:phos:)_OA gd_20
+
+# Improper dihedrals:
+dihedral  4   (:base:)_C4     (:base:)_C8    (:base:)_N9    (:sug:)_C1'   

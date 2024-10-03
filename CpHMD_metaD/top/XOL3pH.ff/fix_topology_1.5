@@ -1,0 +1,361 @@
+#!/usr/bin/awk -f
+
+# fix_topology - a program to fix GROMACS topologies.
+# See the accompanying README file for further details.
+
+BEGIN{
+  # Define name and version:
+  cmd = "fix_topology" ;
+  version = "1.5" ;
+
+  # Parse arguments:
+  if (ARGC < 3) message("U", "Wrong number of arguments.") ;
+  filecheck(top_file = ARGV[1]) ;
+  for (f = 1 ; f <= (nfiles=ARGC-2) ; f++)
+    filecheck(rule_file[f] = ARGV[f+1]) ;
+
+  # Make some initializations:
+  SUBSEP = " " ;
+  natm["bonds"] = 2 ;
+  natm["angles"] = 3 ;
+  natm["dihedrals"] = 4 ;
+  treat_pairs = 0 ; # 20111220 - jmdamas: treat pairs turned off by default
+  nimprop = 0 ;
+  macrofmt = "\\(:[a-zA-Z0-9_]+:\\)" ;  # Double \\ is required due to use of ""
+  macroname[++nmacro] = "(:aa:)" ;
+  # macrodef[nmacro] = "(ALA|ASP|ASN|ARG|CYS|GLU|GLN|GLY|HIS|ISO|LEU|LYS|MET|PHE|PRO|SER|THR|TRP|TYR|VAL)" ;
+  macrodef[nmacro] = "(AR0|AR1|POX|ROS|RON)" ;
+
+  # Read the rules:
+  read_rules() ;
+
+  # Read and write corrected topology:
+  process_topology() ;
+
+  # Normal exit:
+  exit 0 ;
+}
+
+function read_rules(\
+                    k, m)
+{
+  for (k = 1 ; k <= nfiles ; k++)
+  {
+    while (getline < rule_file[k])
+    {
+      if ($0 !~ /^(define|bond|angle|dihedral|pair)/) continue ; # 20111220 - jmdamas: pair
+      for (m = 1 ; m <= nmacro ; m++)
+	gsub(macroname[m], macrodef[m], $0) ;
+      if ($1 == "define")
+      {
+	if($2 !~  ("^" macrofmt "$"))
+	  message("E", "Invalid macro name. Valid format is " macrofmt) ;
+	macroname[++nmacro] = $2 ;
+	macrodef[nmacro] = substr($0,index($0,$3)) ;
+      }
+      # 20111004 - jmdamas
+      ### nrules counts the number of rules for a given entry (type of bonded interact., function type, set of atoms)
+      ### each rule will then have a index number associated in the param and iparam array
+      # 20111114 - jmdamas
+      ### entries for the inversely-ordered parameters are defined only when the inversely-ordered index is different from
+      ### the ordered index
+      else if ($1 == "bond")
+      {
+	param[$1,$2,$3,$4,++nrules[$1,$2,$3,$4]] = get_param(5) ;
+	if (($3 SUBSEP $4) != ($4 SUBSEP $3))
+	  param[$1,$2,$4,$3,++nrules[$1,$2,$4,$3]] = param[$1,$2,$3,$4,nrules[$1,$2,$3,$4]] ;
+      }
+      else if ($1 == "angle")
+      {
+	param[$1,$2,$3,$4,$5,++nrules[$1,$2,$3,$4,$5]] = get_param(6) ;
+	if (($3 SUBSEP $4 SUBSEP $5) != ($5 SUBSEP $4 SUBSEP $3))
+	  param[$1,$2,$5,$4,$3,++nrules[$1,$2,$5,$4,$3]] = param[$1,$2,$3,$4,$5,nrules[$1,$2,$3,$4,$5]] ;
+      }
+      else if ($1 == "dihedral" && $2 == 1)
+      {
+	param[$1,$2,$3,$4,$5,$6,++nrules[$1,$2,$3,$4,$5,$6]] = get_param(7) ;
+	if (($3 SUBSEP $4 SUBSEP $5 SUBSEP $6) != ($6 SUBSEP $5 SUBSEP $4 SUBSEP $3))
+	  param[$1,$2,$6,$5,$4,$3,++nrules[$1,$2,$6,$5,$4,$3]] = param[$1,$2,$3,$4,$5,$6,nrules[$1,$2,$3,$4,$5,$6]] ;
+      }
+      else if ($1 == "dihedral" && $2 == 2)
+	iparam[$3,$4,$5,$6,++nrules[$3,$4,$5,$6]] = get_param(7) ;
+      # Modified for dihedral type 4 in AMBER RNA 
+      else if ($1 == "dihedral" && $2 != 1 && $2 != 2 && $2 != 4)
+	message("E", "Unknown dihedral type: " $0) ;
+      else if ($1 == "pair")  # 20111220 - jmdamas : extract pairs from rules
+      {
+	treat_pairs = 1 ; # if there is any pair rule, turn on treat_pairs
+	pparam[$1,$2,$3,$4,++nrules[$1,$2,$3,$4]] = get_param(5) ;
+	if (($3 SUBSEP $4) != ($4 SUBSEP $3))
+	  pparam[$1,$2,$4,$3,++nrules[$1,$2,$4,$3]] = pparam[$1,$2,$3,$4,nrules[$1,$2,$3,$4]] ;
+      }
+    }
+    close(rule_file[k]) ;
+  }
+}
+
+function get_param(position, \
+		   i, p)
+{
+  p = $(position) ;
+  for (i = position+1 ; i <= NF ; i++) p = p " " $i ;
+  return p ;
+}
+
+function process_topology(\
+                          block, entry, rule, r, i, rrule, rr, n, a)
+# 20111004 - jmdamas
+# rr and rrule are truncated versions of r and rule, without the rule index
+# n and a are auxiliary variables for the construction of rr from r
+{
+  write_procinfo_header() ;
+  block = "" ;
+  while (getline < top_file)
+  {
+    # Detect block headers:
+    if ($0 ~ /^\[ .+ \]/) block = $2 ;
+
+    # Detect block separators:
+    if ($0 ~ /^$/)
+    {
+      # Write new improper dihedrals right after angles block:
+      if (block == "angles") write_impropers() ;
+      block = "" ;
+    }
+
+    # Mark all bond entries:
+    if (block == "bonds" && $0 !~ /^[;[]/)
+    {
+      bond[$1,$2] = atomid[$1] SUBSEP atomid[$2] ;
+      bond[$2,$1] = atomid[$2] SUBSEP atomid[$1] ;
+    }
+
+    # Write lines, doing other stuff if needed:
+    if ($0 ~ /^[;[]/)   # write comments and block headers
+    {
+      printf("%s\n", $0) ;
+    }
+    else if (block == "atoms")   # read atom info
+    {
+      atomid[$1] = $4 "_" $5 ;
+      printf("%s\n", $0) ;
+    }
+    else if ((block in natm) && (NF == 1+natm[block]))   # fill empty entries
+    {
+      entry = substr(block,1,length(block)-1) SUBSEP $(1+natm[block]) ;
+      for (i = 1 ; i <= natm[block] ; i++) entry = entry SUBSEP atomid[$i] ;
+      rule = "" ;
+      for (r in param)
+      {
+        # 20111004 - jmdamas
+        # construct rr from r
+	n = split(r, a, SUBSEP) ;
+        rr = a[1] ;
+	for (i = 2 ; i <= n-1 ; i++) rr = rr SUBSEP a[i] ;
+	if (entry ~ ("^" rr "$"))
+	{
+	  if (rule == "")
+	  {
+	    rule = r ;
+            rrule = rr ;
+	  }
+	  else
+            message("W", "More than one match for '"entry"' :\n  "rrule"   "param[rule]"\n  "rr"   "param[r]"\n" \
+		    "Maybe you defined more than one rule for the same parameter on purpose or\n" \
+		    "maybe there are ambiguous regular expressions.") ;
+	}
+      }
+      if (rule == "")
+      {
+	message("W", "Unassigned: " entry "  (" entry_numbers ")") ;
+	printf("%s            ; left unassigned by %s\n", $0, cmd) ;
+      }
+      else if (param[rule] == "delete")
+	printf("; %s          ; line deleted (commented) by %s\n", $0, cmd) ;
+      else
+      {
+	for (i = 1 ; i <= nrules[rrule] ; i++) # cycle all rules for this parameter and print them
+	  printf("%s   %s     ; empty entry filled by %s\n", $0, param[rrule SUBSEP i], cmd) ;
+      }
+    }
+    else if ( block == "pairs" && (treat_pairs))       # 20111220 - jmdamas: special treatment of pairs
+    {
+      entry = "pair" SUBSEP $3 SUBSEP atomid[$1] SUBSEP atomid[$2] ;
+      rule = "" ;
+      for (r in pparam)
+      {
+        # construct rr from r
+	n = split(r, a, SUBSEP) ;
+        rr = a[1] ;
+	for (i = 2 ; i <= n-1 ; i++) rr = rr SUBSEP a[i] ;
+	if (entry ~ ("^" rr "$"))
+	{
+	  if (rule == "")
+	  {
+	    rule = r ;
+            rrule = rr ;
+	  }
+	  else
+            message("W", "More than one match for '"entry"' :\n  "rrule"   "pparam[rule]"\n  "rr"   "pparam[r]"\n" \
+		    "Maybe you defined more than one rule for the same parameter on purpose or\n" \
+		    "maybe there are ambiguous regular expressions.") ;
+	}
+      }
+      if (rule == "")
+      {
+	print $0 ; # if there is no rule, print the pair normally. it does not issue a warning.
+      }
+      else if (pparam[rule] == "delete")
+	printf("; %s          ; line deleted (commented) by %s\n", $0, cmd) ;
+      else
+      {
+	# in general there are no rules for pairs, but if there are, they are filled here
+	for (i = 1 ; i <= nrules[rrule] ; i++) # cycle all rules for this parameter and print them
+	  printf("%s   %s     ; empty entry filled by %s\n", $0, pparam[rrule SUBSEP i], cmd) ;
+      }
+    }
+    else   # write other lines
+    {
+      printf("%s\n", $0) ;
+    }
+  }
+  close(top_file) ;
+}
+
+function write_procinfo_header(\
+			       pipe, user, host, date)
+{
+  (pipe = "echo $USERNAME \\($UID\\)") | getline user ; close(pipe) ;
+  (pipe = "echo $HOSTNAME") | getline host ; close(pipe) ;
+  (pipe = "date") | getline date ; close(pipe) ;
+  printf(";;; This topology was changed by the program %s, version %s.\n", cmd, version) ;
+  printf(";;;   User: %s\n", user) ;
+  printf(";;;   Host: %s\n", host) ;
+  printf(";;;   Date: %s\n;\n", date) ;
+}
+
+function write_impropers(\
+                         rule, i, iatoms, n, a)
+# 20111004 - jmdamas
+# n and a are auxiliary variables for the construction of iatoms from rule
+{
+  # Write header for improper dihedrals:
+  printf("\n[ dihedrals ]     ; new header added by %s\n", cmd) ;
+  # Run over all improper types defined in the parameter file:
+  for (rule in iparam)
+  {
+    n = split(rule, a, SUBSEP) ;
+    for (i = 1 ; i <= n-1 ; i++) iatoms[i] = a[i] ;
+    if (iparam[rule] ~ /^gi_(1c|2|3)$/)
+      write_central_impropers(iatoms, iparam[rule]) ;
+    else if (iparam[rule] ~ /^gi_1s$/)
+      write_sequential_impropers(iatoms, iparam[rule]) ;
+    else
+      message("E", "Improper type " iparam[rule] " not supported.\n" \
+	      "Supported : gi_1c (gi_1 centered)\n" \
+	      "            gi_1s (gi_1 sequential)\n" \
+	      "            gi_2\n" \
+	      "            gi_3\n") ;
+  }
+}
+
+# Assumes that atoms 1, 2, 3 and 4 are bonded as 1-2, 1-3, 1-4:
+function write_central_impropers(iat, ipar, \
+				 pair1,pair2,pair3,single1,single2,single3)
+{
+  # Look for 1st bond:
+  for (pair1 in bond)
+  {
+    if (bond[pair1] ~ ("^" iat[1] SUBSEP iat[2] "$"))
+    {
+      split(pair1, single1, SUBSEP) ;
+      # Look for 2nd bond:
+      for (pair2 in bond)
+      {
+	if (bond[pair2] ~ ("^" iat[1] SUBSEP iat[3] "$"))
+	{
+	  split(pair2, single2, SUBSEP) ;
+	  if (single2[1] == single1[1])
+	  {
+            # Look for 3rd bond:
+	    for (pair3 in bond)
+	    {
+	      if (bond[pair3] ~ ("^" iat[1] SUBSEP iat[4] "$"))
+	      {
+		split(pair3, single3, SUBSEP) ;
+		if (single3[1] == single1[1])
+		{
+		  printf("%5d %5d %5d %5d    2   %s     ; new entry added by %s\n",
+			 single1[1], single1[2], single2[2], single3[2],
+			 (ipar == "gi_1c" ? "gi_1" : ipar), cmd) ;
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+# Assumes that atoms 1, 2, 3 and 4 are bonded as 1-2, 2-3, 3-4:
+function write_sequential_impropers(iat, ipar, \
+				    pair1,pair2,pair3,single1,single2,single3)
+{
+  # Look for 1st bond:
+  for (pair1 in bond)
+  {
+    if (bond[pair1] ~ ("^" iat[1] SUBSEP iat[2] "$"))
+    {
+      split(pair1, single1, SUBSEP) ;
+      # Look for 2nd bond:
+      for (pair2 in bond)
+      {
+	if (bond[pair2] ~ ("^" iat[2] SUBSEP iat[3] "$"))
+	{
+	  split(pair2, single2, SUBSEP) ;
+	  if (single2[1] == single1[2])
+	  {
+            # Look for 3rd bond:
+	    for (pair3 in bond)
+	    {
+	      if (bond[pair3] ~ ("^" iat[3] SUBSEP iat[4] "$"))
+	      {
+		split(pair3, single3, SUBSEP) ;
+		if (single3[1] == single2[2])
+		{
+		  printf("%5d %5d %5d %5d    2   %s     ; new entry added by %s\n",
+			 single1[1], single1[2], single2[2], single3[2],
+			 (ipar == "gi_1s" ? "gi_1" : ipar), cmd) ;
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+function filecheck(file)
+{
+  if (system("test -f "file))
+    message("E", "File "file" does not exist.") ;
+  if (system("test -r "file))
+    message("E", "File "file" exists but is not readable.") ;
+}
+
+function message(mt, msg, \
+		 usage)
+{
+  usage = "Usage: "cmd" topology_file rules_file(s)\n" \
+          "Supported forcefields: ffG43a1, ffG53a6, ffG54a7." ;
+
+  if (mt !~ "^(W|E|U)$") message("E", "Wrong use of message().") ;
+  printf "%s: %s: %s\n%s", cmd, (mt=="W"?"WARNING":"ERROR"), msg,
+         (mt == "U" ? usage"\n" : "") | "cat 1>&2" ;
+  close ("cat 1>&2") ;
+  if (mt != "W") exit 1 ;
+}
+
+

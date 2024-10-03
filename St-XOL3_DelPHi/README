@@ -1,0 +1,17 @@
+Charge pkmod values need to be corrected for experimental values.
+pKmod values for nucleobase+ribose (no phosphate groups) at 0.1M 25oC:
+
+Some partial charges were rounded up/down since Delphi only reads until the 3rd decimal point.
+
+Adenosine - 3.50 ; in some places its reported 3.55 but the effect is minimal
+Guanosine - N7: 2.11 ; N1: 9.22 ; 0.1M 25ºC Paper:  
+Cytidine  - 4.22 ; Dont confuse with cytosine (only nucleobase)
+Uridine   - 9.27 ; 9.51 is for the deoxy ; Paper: Dissociation constants of the bases and their derivatives. J. Clauwaert and J Stockx  
+For RNA and DNA nucleobases, experimental data was taken from multiple sources:
+
+- https://pubs.acs.org/doi/pdf/10.1021/cr60273a002
+-
+
+Tautomerization does not occur in the canonical nucleotides. However, one should take note how tautomeric forms are introduced:
+
+# COPY HERE THE TEXT FOR AMINOACIDS#
