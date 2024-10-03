@@ -14,7 +14,7 @@ We thank Dr. Miguel Machuqueiro and Nuno F.B. Oliveira for access to their code 
 
 ## LOGBOOK
 
-03/10/2024
-< br/>
+###03/10/2024
 
-Added necessary parameter and script files to run metadynamics on st-CpHMD and RNA simulations
+  Added necessary parameter and script files to run metadynamics on st-CpHMD and RNA simulations
+  
