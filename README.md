@@ -3,9 +3,10 @@
 ## General Information
 
 The files available in the folders are modified to allow compatibility of the st-CpHMD method with RNA and metadynamics.
-The files should replace the already existing ones in the equally named folders in the source code of CpHMD-v3.0 (available on the GitHub page of Nuno F.B. Oliveira (https://github.com/NunoFBOliveira/CpHMD_v3).
+The files should replace the already existing ones in the equally named folders in the source code of CpHMD-v3.0 (available on the GitHub page of Nuno F.B. Oliveira - https://github.com/NunoFBOliveira/CpHMD_v3).
 
 To perform reweight analysis, we recommend the use of the available WHAM module on the Bussi Lab GitHub: https://bussilab.github.io/doc-py-bussilab/bussilab/wham.html .
+Notebooks and scripts will be made available as templates for protonation and conformation analysis.
 
 ## SOON a tutorial will be created and added to this page. 
 
