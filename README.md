@@ -2,8 +2,9 @@
 
 ## General Information
 
-The files available in the folders are modified to allow compatibility of the st-CpHMD method with RNA and metadynamics.
-The files should replace the already existing ones in the equally named folders in the source code of CpHMD-v3.0 (available on the GitHub page of Nuno F.B. Oliveira - https://github.com/NunoFBOliveira/CpHMD_v3).
+This page provides access to RNA parameters compatible with the stochastic titration Constant-pH Molecular Dynamics method and the metadynamics version (CpH-MetaD) using PLUMED v2.0 (see https://www.plumed.org/). The development was done in the Bussi Lab group by Tomás F.D. Silva (see: https://www.sissa.it/sbp/members.php?ID=472) and Prof. Giovanni Bussi (see: https://www.sissa.it/sbp/members.php?ID=323). 
+
+The files available in the folders are modified to allow compatibility of the st-CpHMD method with RNA and metadynamics and they should replace the already existing ones in the equally named folders in the source code of CpHMD-v3.0 (available on the GitHub page of Nuno F.B. Oliveira - https://github.com/NunoFBOliveira/CpHMD_v3).
 
 To perform reweight analysis, we recommend the use of the available WHAM module on the Bussi Lab GitHub: https://bussilab.github.io/doc-py-bussilab/bussilab/wham.html .
 Notebooks and scripts will be made available as templates for protonation and conformation analysis.
