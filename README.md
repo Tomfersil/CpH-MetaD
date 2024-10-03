@@ -13,8 +13,8 @@ To perform reweight analysis, we recommend the use of the available WHAM module 
 We thank Dr. Miguel Machuqueiro and Nuno F.B. Oliveira (see page: https://mms.rd.ciencias.ulisboa.pt/index.html) for access to their CpHMD-V3.0 code and help in this current implementation.
 
 Please cite the original and current versions of the st-CpHMD method and the CpHMD-metadynamics approach papers when using the method:
-1) https://pubs.acs.org/doi/full/10.1021/acs.jpcb.2c04529  - Most recent paper ;
-2)  - ArXiv version of the CpH-MetaD paper;
+1)  - ArXiv version of the CpH-MetaD paper;
+2) https://pubs.acs.org/doi/full/10.1021/acs.jpcb.2c04529  - Most recent st-CpHMD paper ;
 3)  - Original st-CpHMD ;
 
 
