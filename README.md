@@ -6,9 +6,9 @@ The files available in the folders are modified to allow compatibility of the st
 
 The files should replace the already existing ones in the equally named folders in the source code of CpHMD-v3.0 available in the github page of the Machuqueiro Lab group (see github page: ).
 
-Please cite the original and current version of the st-CpHMD method and the CpHMD-metadynamics approach papers when using the method:
-1)
-2)
+Please cite the original and current version of the st-CpHMD method and the CpHMD-metadynamics approach papers when using the method: \n
+1) ; \n
+2) ; \n
 
 We thank Dr. Miguel Machuqueiro and Nuno F.B. Oliveira for access to their code and help in this current implementation.
 
