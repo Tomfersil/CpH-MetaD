@@ -16,8 +16,8 @@ We thank Dr. Miguel Machuqueiro and Nuno F.B. Oliveira (see page: https://mms.rd
 
 Please cite the original and current versions of the st-CpHMD method and the CpHMD-metadynamics approach papers when using the method:
 1)  - ArXiv version of the CpH-MetaD paper;
-2) https://pubs.acs.org/doi/full/10.1021/acs.jpcb.2c04529  - Most recent st-CpHMD paper ;
-3)  - Original st-CpHMD ;
+2) [Recent st-CpHMD v3.0 paper](https://pubs.acs.org/doi/full/10.1021/acs.jpcb.2c04529) ;
+3) [Original st-CpHMD paper](https://doi.org/10.1063/1.1497164) ;
 
 
 ## LOGBOOK
