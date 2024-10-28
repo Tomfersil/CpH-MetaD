@@ -1,7 +1,7 @@
 ########################################
 # Check if the timesteps and temperature values are consistent with previous settings
 # Activate MOLINFO functionalities
-MOLINFO STRUCTURE=/home/tfernand/Tutorial/Uridine/02_initial/rep1.pdb
+MOLINFO STRUCTURE=rep1.pdb
 RESTART # Do not remove this line. This is ignored for the first cycle in each block
 chi:  TORSION ATOMS=8,9,19,28
 puck: PUCKERING ATOMS=6,8,9,13,11
