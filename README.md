@@ -9,7 +9,7 @@ The files in the folders are modified to allow compatibility of the st-CpHMD met
 To perform reweight analysis, we recommend using the WHAM module available on the Bussi Lab GitHub: https://bussilab.github.io/doc-py-bussilab/bussilab/wham.html.
 Notebooks and scripts will be available as protonation and conformation analysis templates.
 
-## SOON a tutorial will be created and added to this page. 
+## A tutorial is available here: https://github.com/Tomfersil/CpHMetaD_Tutorial  
 
 ## Acknowledgments
 We thank Dr. Miguel Machuqueiro and Nuno F.B. Oliveira (see page: https://mms.rd.ciencias.ulisboa.pt/index.html) for access to their CpHMD-V3.0 code and help in this current implementation.
