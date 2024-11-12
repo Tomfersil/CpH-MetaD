@@ -46,8 +46,13 @@ def remap_nucleotides(atoms, add_caps=True):
     o3_p_pairs = {'O3':[],'P':[]}  
 
 
-
     for idx, atom in enumerate(atoms):
+        # Convert OP1/OP2 to O1P/O2P
+        if atom['atom_name'] == 'OP1':
+            atom['atom_name'] = 'O1P'
+        elif atom['atom_name'] == 'OP2':
+            atom['atom_name'] = 'O2P'
+
         if atom['atom_name'] == "O5'":
             if first_O5_idx is None and add_caps == True:
                 first_O5_idx = idx
@@ -99,20 +104,33 @@ def remap_nucleotides(atoms, add_caps=True):
                     atom['res_name'] = 'CR0'
         remapped_atoms.append(atom)
         
-            # Increment residue sequence number after processing each atom
-            #current_residue_num += 1
-    
+    # Renumber residues 
+    remapped_atoms = renumber_residues(remapped_atoms)
+
     # Move the first O5' atom to the front of the list
     if first_O5_idx is not None:
         o5_atom = remapped_atoms.pop(first_O5_idx)
         remapped_atoms.insert(0, o5_atom)
-    # Move every O3' before the following P atom, except the last O3'
-    # Move the first O5' atom to the front of the list
+
+    # Move the last O3' atom to the penultimate residue
     if last_O3_idx is not None:
+        # Remove the last O3' atom from its original position
         o3_atom = remapped_atoms.pop(last_O3_idx)
-        remapped_atoms.append(o3_atom)
-        # Move every O3' before the following P atom, except the last O3'
-    
+
+        # Find the maximum residue number
+        max_res_num = max(atom['res_seq'] for atom in remapped_atoms)
+        # Determine the penultimate residue number
+        penultimate_res_num = max_res_num - 1
+        # Find the index to insert the O3' atom before the last residue starts
+        insert_idx = len(remapped_atoms)  # Default to the end of the list if no match
+        for idx, atom in enumerate(remapped_atoms):
+            if atom['res_seq'] == penultimate_res_num:
+                insert_idx = idx
+                break
+
+        # Insert the O3' atom at the position where the penultimate residue starts
+        remapped_atoms.insert(insert_idx, o3_atom)
+
     # Update the atom numbering after remapping
     remapped_atoms = update_atom_numbers(remapped_atoms)
 
@@ -211,11 +229,11 @@ def write_pdb(atoms, output_file):
             file.write(f"{atom['record']:<6}{atom['atom_num']:>5} {atom['atom_name']:<4} {atom['res_name']:<4}{atom['chain_id']}{atom['res_seq']:>4}    {atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}  1.00  0.00          {atom['element']:>2}\n")
 
 # Input and output file paths
-input_file = 'WW_bevilacqua_OH5.pdb'
-output_file = 'WW_cph.pdb'
+#input_file = 'WW_bevilacqua_OH5.pdb'
+#output_file = 'WW_cph.pdb'
 
-#input_file  = 'A1mer_nomenclature_pymol.pdb'
-#output_file = 'converted_A3mer.pdb'
+input_file  = 'A1mer_nomenclature_pymol.pdb'
+output_file = 'converted_A3mer.pdb'
 
 # Parse input PDB file
 atoms = parse_pdb(input_file)
