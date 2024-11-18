@@ -71,13 +71,15 @@ cat <<EOF > $SysName.sh
 #     export MAGMA_NUM_GPUS=2
 #
 #
+module unload fftw
 module load cuda
-module load gromacs
+module load gromacs/2022.3--openmpi--4.1.4--gcc--11.3.0-cuda-11.8
 
 export OMP_PLACES=threads
 export GMX_GPU_DD_COMMS=true
 export GMX_GPU_PME_PP_COMMS=true
 export GMX_FORCE_UPDATE_DEFAULT_GPU=true
+export GMX_ENABLE_DIRECT_GPU_COMM=true
 #export GMX_DISABLE_GPU_TIMING=true
 
 # ==== End of Modules part (load all the modules) ===== #
@@ -159,17 +161,21 @@ cd ${simdir}/${USER}_CpHMD\$$
 
 if [ \${i} -eq 1 ]; then 
    echo \$1 
-   cp -f \$SLURM_SUBMIT_DIR/\$1 ${SysName}_\${j}.pHmdp
+   rsync -r \$SLURM_SUBMIT_DIR/\$1 ${SysName}_\${j}.pHmdp
 elif [[ \${plumed} == "grid" ]] ;then
-   cp -f \$SLURM_SUBMIT_DIR/${SysName}_\${l}.gro ./
-   #cp -f \$SLURM_SUBMIT_DIR/${hills}_\${j} ./
-   cp -f \$SLURM_SUBMIT_DIR/${colvar_name} ./
-   cp -f \$SLURM_SUBMIT_DIR/${grid_name} ./
+   rsync -r \$SLURM_SUBMIT_DIR/${SysName}_\${l}.gro ./
+   #rsync -r \$SLURM_SUBMIT_DIR/${hills}_\${j} ./
+   rsync -r \$SLURM_SUBMIT_DIR/${colvar_name} ./
+   rsync -r \$SLURM_SUBMIT_DIR/${grid_name} ./
+   sed "s/GROin=.*/GROin=${SysName}_\${l}.gro/g" \$SLURM_SUBMIT_DIR/\$1 > ${SysName}_\${j}.pHmdp
+elif [[ \${plumed} == "grid" ]] ;then
+   rsync -r \$SLURM_SUBMIT_DIR/${SysName}_\${l}.gro ./
+   rsync -r \$SLURM_SUBMIT_DIR/${hills} ./
+   rsync -r \$SLURM_SUBMIT_DIR/${colvar_name} ./
    sed "s/GROin=.*/GROin=${SysName}_\${l}.gro/g" \$SLURM_SUBMIT_DIR/\$1 > ${SysName}_\${j}.pHmdp
 else
-   cp -f \$SLURM_SUBMIT_DIR/${SysName}_\${l}.gro ./
-   cp -f \$SLURM_SUBMIT_DIR/${hills} ./
-   cp -f \$SLURM_SUBMIT_DIR/${colvar_name} ./
+   rsync -r \$SLURM_SUBMIT_DIR/${SysName}_\${l}.gro ./
+   rsync -r \$SLURM_SUBMIT_DIR/${colvar_name} ./
    sed "s/GROin=.*/GROin=${SysName}_\${l}.gro/g" \$SLURM_SUBMIT_DIR/\$1 > ${SysName}_\${j}.pHmdp
 fi
 Seg_tot_time=\`awk -v n=${Seg_size} '\$2 ~ /^EffectiveSteps=/ {m=substr (\$2,16); print (n*1000)/(m*0.002)}' ${SysName}_\${j}.pHmdp\`
@@ -177,11 +183,9 @@ Seg_tot_time=\`awk -v n=${Seg_size} '\$2 ~ /^EffectiveSteps=/ {m=substr (\$2,16)
 sed -i "s/InitCycle=.*/InitCycle=\$((\$Seg_tot_time*\$k+1))/g" ${SysName}_\${j}.pHmdp
 sed -i "s/EndCycle=.*/EndCycle=\$((\$Seg_tot_time*\$i))/g"  ${SysName}_\${j}.pHmdp
 
-# line needed to mount /programs using autofs
-#ls /programs/ >/dev/null 2>&1; sleep 2
 #
 CpHMDDIR=\`egrep "CpHDIR="  ${SysName}_\${j}.pHmdp 2>/dev/null| awk '{print substr(\$2,9,length(\$2)-9)}' 2>/dev/null\`
-cp -f \$CpHMDDIR/scripts/CpHMD.sh .
+rsync -r \$CpHMDDIR/scripts/CpHMD.sh .
 
 echo "starting to decompose mdp and fixgro"
 
@@ -200,33 +204,40 @@ if [[ \$plumed == "grid" ]] ;then
     sed -i "s/\&colvar_name/$colvar_name/g" ${SysName}_plumed.dat
 fi
 
-if [[ \$plumed == "yes" ]] || [[ \$plumed == "static" ]] ;then
+if [[ \$plumed == "hills" ]] || [[ \$plumed == "static" ]] ;then
     awk '/#plumed# / {print}' ${SysName}_\${j}.pHmdp | sed 's/#plumed# //g' > ${SysName}_plumed.dat
     sed -i "s/\&colvar_stride/$colvar_stride/g" ${SysName}_plumed.dat
     sed -i "s/\&hills/$hills/g" ${SysName}_plumed.dat
     sed -i "s/\&colvar_name/$colvar_name/g" ${SysName}_plumed.dat
 fi
+if [[ \$plumed == "yes" ]] ;then
+    awk '/#plumed# / {print}' ${SysName}_\${j}.pHmdp | sed 's/#plumed# //g' > ${SysName}_plumed.dat
+    sed -i "s/\&colvar_stride/$colvar_stride/g" ${SysName}_plumed.dat
+    sed -i "s/\&colvar_name/$colvar_name/g" ${SysName}_plumed.dat
+fi
 # Run Constant-pH MD segment:
-#nice -n 19 /tmp/${USER}_CpHMD\$$/CpHMD.sh  ${SysName}_\${j}.pHmdp > ${SysName}_\${j}.err 2>&1 
 nice -n 19 bash ${simdir}/${USER}_CpHMD\$$/CpHMD.sh ${SysName}_\${j}.pHmdp > ${SysName}_\${j}.err 2>&1 
 
 # Copy files and return to shared directory
-cp -df ${simdir}/${USER}_CpHMD\$$/${SysName}_\${j}* \$SLURM_SUBMIT_DIR
+rsync -r ${simdir}/${USER}_CpHMD\$$/${SysName}_\${j}* \$SLURM_SUBMIT_DIR
 if [ ! -f \$SLURM_SUBMIT_DIR/${SysName}.sites ] ; then
-cp ./${SysName}.sites \$SLURM_SUBMIT_DIR/
+rsync ./${SysName}.sites \$SLURM_SUBMIT_DIR/
 fi
 if [ -f ${simdir}/${USER}_CpHMD\$$/${colvar_name} ] && [ -f ${simdir}/${USER}_CpHMD\$$/${hills} ] && [[ \$plumed != "grid" ]]  ; then
-cp ./${colvar_name} $rundir
-cp ./${hills} $rundir
+rsync -r ./${colvar_name} $rundir
+rsync -r ./${hills} $rundir
 fi
 #
 if [ -f ${simdir}/${USER}_CpHMD\$$/${colvar_name} ] && [[ \$plumed == "grid" ]]  ; then
-cp ./${colvar_name} $rundir
+rsync -r ./${colvar_name} $rundir
 mv ${hills}_curr_seg ${hills}_\${j}
-cp ./${hills}_\${j} $rundir
-cp ./${grid_name} $rundir 
+rsync -r ./${hills}_\${j} $rundir
+rsync -r ./${grid_name} $rundir 
 fi
-#
+if [ -f ${simdir}/${USER}_CpHMD\$$/${colvar_name} ] && [[ \$plumed == "yes" ]]  ; then
+rsync -r ./${colvar_name} $rundir
+fi
+#   
 
 
 if (for f in ${SysName}_\${j}*; do diff \$f \$SLURM_SUBMIT_DIR/\$f; done); then
@@ -260,7 +271,7 @@ EOF
 #chmod +x $SysName.slurm
 
 #sbatch --requeue -p $Partition -N 1 -n $nCPU --mem=1 -o $runname.sout -e $runname.serr $runname.slurm
-sbatch $SysName.sh $1
+sbatch -A EUHPC_R02_136 $SysName.sh $1
 
 echo ""
 echo "Job submitted to Partition(s): $Partition with $nCPU Processors"
