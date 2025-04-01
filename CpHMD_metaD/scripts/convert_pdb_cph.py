@@ -151,6 +151,7 @@ def remap_nucleotides(atoms, add_caps=True):
 
     # Move O2' atoms that follow AR0 or GR0 blocks to before the previous ROS residue.
     temp_atoms = rearranged_atoms.copy()
+    temp_atoms.pop()
     for atom in temp_atoms:
         if atom['atom_name'] == "O2'" and rearranged_atoms.index(atom) > 0:
             curr_idx = rearranged_atoms.index(atom)
@@ -180,6 +181,20 @@ def remap_nucleotides(atoms, add_caps=True):
                 rearranged_atoms.remove(atom)
                 rearranged_atoms.insert(target_idx, atom)
                 rearranged_atoms = update_atom_numbers(rearranged_atoms)
+
+    # Move OH3 residue to just before the last residue.
+    temp_atoms = rearranged_atoms.copy()
+    for atom in temp_atoms:
+        if atom['res_renamed'] == 'OH3':
+            rearranged_atoms.remove(atom)
+            # Find the first atom of the last residue
+            last_residue_num = rearranged_atoms[-1]['res_new']
+            for i, target_atom in enumerate(rearranged_atoms):
+                if target_atom['res_new'] == last_residue_num:
+                    rearranged_atoms.insert(i, atom)
+                    rearranged_atoms = update_atom_numbers(rearranged_atoms)
+                    break
+            break
 
     return rearranged_atoms
 
