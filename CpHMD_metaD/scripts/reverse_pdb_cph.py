@@ -87,8 +87,8 @@ def correct_residue_numbers(atoms):
     previous_p_atom = False
 
     for atom in atoms:
-        # Increment residue number if the residue name changes or a new P atom appears
-        if atom['res_name'] != previous_residue_name or atom['atom_name'] == 'P':
+        # Increment residue number if the residue name changes or a new O5' atom appears
+        if atom['res_name'] != previous_residue_name or atom['atom_name'] == 'O5\'':
             current_residue_number += 1
             previous_residue_name = atom['res_name']
             previous_p_atom = atom['atom_name'] == 'P'
