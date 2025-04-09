@@ -75,6 +75,8 @@ def reverse_remap(atoms):
             atom['atom_name'] = 'OP1'
         elif atom['atom_name'] == 'O2P':
             atom['atom_name'] = 'OP2'
+        # Step 3: Handle residue counting for SOL, K, and Cl
+          
 
     # Sort atoms by their original atom numbers to reverse rearrangements
     atoms.sort(key=lambda x: x['atom_num'])
@@ -85,23 +87,44 @@ def correct_residue_numbers(atoms):
     current_residue_number = 0
     previous_residue_name = None
     previous_p_atom = False
+    ions = ['K', 'Na', 'Mg', 'Ca', 'CL', 'Br', 'I']
 
     for atom in atoms:
         # Increment residue number if the residue name changes or a new O5' atom appears
-        if atom['res_name'] != previous_residue_name or atom['atom_name'] == 'O5\'':
+        if atom['res_name'] != previous_residue_name and atom['res_renamed'] != 'SOL' or atom['atom_name'] == 'O5\'':
             current_residue_number += 1
             previous_residue_name = atom['res_name']
             previous_p_atom = atom['atom_name'] == 'P'
 
+        elif atom['res_renamed'] == 'SOL' and atom['atom_name'] == 'OW':
+            current_residue_number += 1
+            atom['res_name'] = atom['res_renamed']
+            atom['res_new']  = current_residue_number
+
+        elif atom['res_renamed'] == 'SOL' and atom['atom_name'] != 'OW':
+            atom['res_name'] = atom['res_renamed']
+            atom['res_new'] = current_residue_number
+            
+        elif atom['res_renamed'] in ions:
+            current_residue_number += 1            
+            atom['res_name'] = atom['res_renamed']
+            atom['res_new'] = current_residue_number
+        
         atom['res_new'] = current_residue_number
 
+        #print(atom)  
     return atoms
 
 def write_pdb(atoms, output_file):
     """Write atoms to a new PDB file."""
     with open(output_file, 'w') as file:
         for atom in atoms:
-            file.write(f"{atom['record']:<6}{atom['atom_num']:>5} {atom['atom_name']:<4} {atom['res_name']:<4}{atom['chain_id']}{atom['res_new']:>4}    {atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}  1.00  0.00          {atom['element']:>2}\n")
+            if len(atom['res_name']) == 1:
+                file.write(f"{atom['record']:<6}{atom['atom_num']:>5} {atom['atom_name']:<6} {atom['res_name']:<2}{atom['chain_id']}{atom['res_new']:>4}    {atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}  1.00  0.00          {atom['element']:>2}\n")
+            elif len(atom['res_name']) == 2:
+                file.write(f"{atom['record']:<6}{atom['atom_num']:>5} {atom['atom_name']:<5} {atom['res_name']:<3}{atom['chain_id']}{atom['res_new']:>4}    {atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}  1.00  0.00          {atom['element']:>2}\n")
+            else:
+                file.write(f"{atom['record']:<6}{atom['atom_num']:>5} {atom['atom_name']:<4} {atom['res_name']:<4}{atom['chain_id']}{atom['res_new']:>4}    {atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}  1.00  0.00          {atom['element']:>2}\n")
 
 # Input and output file paths
 input_file = sys.argv[1]
