@@ -117,10 +117,13 @@ def correct_residue_numbers(atoms):
 
 def format_pdb_line(atom):
     """Format a single atom line for the PDB file."""
+    # Reset residue number to 0 if it exceeds 9999
+    res_new = atom['res_new'] if atom['res_new'] <= 9999 else 0
+
     return (
         f"{atom['record']:<6}{atom['atom_num']:>5} "
-        f"{atom['atom_name']:<4}{atom['res_name']:<3} "
-        f"{atom['chain_id']}{atom['res_new']:>4}    "
+        f"{atom['atom_name']:<5}{atom['res_name']:>3} "
+        f"{atom['chain_id']}{res_new:>4}    "
         f"{atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}"
         f"  1.00  0.00          {atom['element']:>2}\n"
     )
