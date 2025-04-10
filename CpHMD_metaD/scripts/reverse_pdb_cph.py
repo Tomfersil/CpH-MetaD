@@ -115,18 +115,21 @@ def correct_residue_numbers(atoms):
         #print(atom)  
     return atoms
 
+def format_pdb_line(atom):
+    """Format a single atom line for the PDB file."""
+    return (
+        f"{atom['record']:<6}{atom['atom_num']:>5} "
+        f"{atom['atom_name']:<4}{atom['res_name']:<3} "
+        f"{atom['chain_id']}{atom['res_new']:>4}    "
+        f"{atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}"
+        f"  1.00  0.00          {atom['element']:>2}\n"
+    )
+
 def write_pdb(atoms, output_file):
     """Write atoms to a new PDB file."""
     with open(output_file, 'w') as file:
         for atom in atoms:
-            if len(atom['res_name']) == 1:
-                file.write(f"{atom['record']:<6}{atom['atom_num']:>5} {atom['atom_name']:<6} {atom['res_name']:<2}{atom['chain_id']}{atom['res_new']:>4}    {atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}  1.00  0.00          {atom['element']:>2}\n")
-            elif len(atom['res_name']) == 2:
-                file.write(f"{atom['record']:<6}{atom['atom_num']:>5} {atom['atom_name']:<5} {atom['res_name']:<3}{atom['chain_id']}{atom['res_new']:>4}    {atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}  1.00  0.00          {atom['element']:>2}\n")
-            else:
-                file.write(f"{atom['record']:<6}{atom['atom_num']:>5} {atom['atom_name']:<4} {atom['res_name']:<4}{atom['chain_id']}{atom['res_new']:>4}    {atom['x']:>8.3f}{atom['y']:>8.3f}{atom['z']:>8.3f}  1.00  0.00          {atom['element']:>2}\n")
-
-# Input and output file paths
+            file.write(format_pdb_line(atom))
 input_file = sys.argv[1]
 output_file = sys.argv[2]
 
