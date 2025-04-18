@@ -15,11 +15,10 @@ Notebooks and scripts will be available as protonation and conformation analysis
 We thank Dr. Miguel Machuqueiro and Nuno F.B. Oliveira (see page: https://mms.rd.ciencias.ulisboa.pt/index.html) for access to their CpHMD-V3.0 code and help in this current implementation.
 
 Please cite the original and current versions of the st-CpHMD method and the CpHMD-metadynamics approach papers when using the method:
-1) [ArXiv version of the CpH-MetaD paper](https://arxiv.org/abs/2410.16064) ;
+1)  [Published version of CpH-MetaD paper for RNA titration](https://pubs.acs.org/doi/full/10.1021/acs.jcim.4c02185);
 2) [Recent st-CpHMD v3.0 paper](https://pubs.acs.org/doi/full/10.1021/acs.jpcb.2c04529) ;
 3) [Original st-CpHMD paper](https://doi.org/10.1063/1.1497164) ;
-
-
+4) [ArXiv version of the CpH-MetaD paper](https://arxiv.org/abs/2410.16064)
 ## LOGBOOK
 
 ###03/10/2024
